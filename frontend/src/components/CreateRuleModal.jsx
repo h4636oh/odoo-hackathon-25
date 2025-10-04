@@ -19,7 +19,7 @@ const CreateRuleModal = ({ request, user, onClose, onSuccess }) => {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/admin/users', {
+      const response = await fetch('http://localhost:8000/admin/users', {
         headers: {
           'Authorization': `Bearer ${user.access_token}`,
         },
@@ -55,7 +55,7 @@ const CreateRuleModal = ({ request, user, onClose, onSuccess }) => {
     setError('');
     
     try {
-      const response = await fetch(`http://localhost:8000/api/admin/generate_request_rules/${request.request_id}`, {
+      const response = await fetch(`http://localhost:8000/admin/generate_request_rules/${request.request_id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

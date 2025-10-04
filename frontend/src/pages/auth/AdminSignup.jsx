@@ -29,7 +29,7 @@ const AdminSignup = ({ onLogin }) => {
     setError('');
     
     try {
-      const response = await fetch('http://localhost:8000/api/admin/signup', {
+      const response = await fetch('http://localhost:8000/admin/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -140,7 +140,9 @@ const AdminSignup = ({ onLogin }) => {
                 >
                   <option value="">Select your country</option>
                   {countries.map((country) => (
-                    <option key={country.code} value={country.code}>
+                    // *** THIS IS THE FIX ***
+                    // The value should be the country's full name to match the backend's expectation.
+                    <option key={country.code} value={country.name}>
                       {country.name} ({country.currency})
                     </option>
                   ))}

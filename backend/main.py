@@ -16,27 +16,27 @@ import database
 from auth import create_access_token, get_current_user, ACCESS_TOKEN_EXPIRE_MINUTES
 from database import db
 from mailer import send_email
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-# region CORS Middleware
-# This is the new section to allow frontend communication
-
 origins = [
-    "http://localhost",
-    "http://localhost:3000",
-    "http://localhost:8080",
-    # You can add the specific URL of your frontend if it's deployed
+    "http://localhost:3000", # Example for React
+    "http://localhost:5173", # Example for Vite/Vue
+    "http://localhost:4200", # Example for Angular
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins for simplicity. For production, restrict this.
-    allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods (GET, POST, etc.)
-    allow_headers=["*"],  # Allows all headers
+    allow_origins=origins,
+    allow_credentials=True, # Allows cookies to be included in requests
+    allow_methods=["*"],    # Allows all methods (GET, POST, etc.)
+    allow_headers=["*"],    # Allows all headers
 )
-# endregion
+
+@app.post("/test-cors")
+async def test_cors_endpoint():
+    return {"message": "CORS test successful"}
 
 # Create separate routers for admin and user
 admin_router = APIRouter()
@@ -44,7 +44,6 @@ user_router = APIRouter()
 
 # Password Hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 
 # region Models
 class Admin(BaseModel):
@@ -145,7 +144,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 # endregion
 
 # region Admin Routes
-@admin_router.post("/admin/signup", response_model=Token)
+@admin_router.post("/signup", response_model=Token)
 async def admin_signup(form_data: Admin = Body(...)):
     existing_admin = await db["admins"].find_one({"Email": form_data.email})
     if existing_admin:
@@ -176,7 +175,7 @@ async def admin_signup(form_data: Admin = Body(...)):
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
-@admin_router.post("/admin/signin", response_model=Token)
+@admin_router.post("/signin", response_model=Token)
 async def admin_signin(form_data: OAuth2PasswordRequestForm = Depends()):
     admin = await db["admins"].find_one({"Email": form_data.username})
     if not admin or not verify_password(form_data.password, admin["Password_hash"]):
@@ -192,7 +191,7 @@ async def admin_signin(form_data: OAuth2PasswordRequestForm = Depends()):
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@admin_router.post("/admin/create_user")
+@admin_router.post("/create_user")
 async def create_user(user: User, current_user: dict = Depends(get_current_user)):
     if await db["users"].find_one({"Email": user.email}):
         raise HTTPException(
@@ -227,7 +226,7 @@ async def create_user(user: User, current_user: dict = Depends(get_current_user)
     return {"message": "User created successfully and password sent to email."}
 
 
-@admin_router.get("/admin/users")
+@admin_router.get("/users")
 async def list_users(current_user: dict = Depends(get_current_user)):
     users_cursor = db["users"].find({})
     users_list = []
@@ -247,20 +246,20 @@ async def list_users(current_user: dict = Depends(get_current_user)):
     return users_list
 
 
-@admin_router.post("/admin/change_role/{user_id}")
+@admin_router.post("/change_role/{user_id}")
 async def change_role(user_id: str, role: str = Body(..., embed=True), current_user: dict = Depends(get_current_user)):
     await db["users"].update_one({"_id": ObjectId(user_id)}, {"$set": {"role": role}})
     return {"message": "User role changed successfully"}
 
 
-@admin_router.post("/admin/change_manager/{user_id}")
+@admin_router.post("/change_manager/{user_id}")
 async def change_manager(user_id: str, manager_id: str = Body(..., embed=True),
                          current_user: dict = Depends(get_current_user)):
     await db["users"].update_one({"_id": ObjectId(user_id)}, {"$set": {"Manager": manager_id}})
     return {"message": "User manager changed successfully"}
 
 
-@admin_router.post("/admin/send_password/{user_id}")
+@admin_router.post("/send_password/{user_id}")
 async def send_password(user_id: str, current_user: dict = Depends(get_current_user)):
     user = await db["users"].find_one({"_id": ObjectId(user_id)})
     if not user:
@@ -277,7 +276,7 @@ async def send_password(user_id: str, current_user: dict = Depends(get_current_u
     return {"message": "User password sent successfully"}
 
 
-@admin_router.get("/admin/requests")
+@admin_router.get("/requests")
 async def list_all_requests(current_user: dict = Depends(get_current_user)):
     requests_cursor = db["requests"].find({})
     requests_list = []
@@ -291,7 +290,7 @@ async def list_all_requests(current_user: dict = Depends(get_current_user)):
     return requests_list
 
 
-@admin_router.get("/admin/requests/{request_id}")
+@admin_router.get("/requests/{request_id}")
 async def get_request_details(request_id: str, current_user: dict = Depends(get_current_user)):
     request = await db["requests"].find_one({"_id": ObjectId(request_id)})
     if not request:
@@ -303,14 +302,14 @@ async def get_request_details(request_id: str, current_user: dict = Depends(get_
     return request
 
 
-@admin_router.post("/admin/generate_request_rules/{request_id}")
+@admin_router.post("/generate_request_rules/{request_id}")
 async def generate_request_rules(request_id: str, rule: RequestRule, current_user: dict = Depends(get_current_user)):
     await db["requests"].update_one({"_id": ObjectId(request_id)}, {"$set": rule.dict()})
     # Logic to send to approval process would go here
     return {"message": "Request rules generated and sent for approval"}
 
 
-@admin_router.get("/admin/expenses")
+@admin_router.get("/expenses")
 async def get_all_expenses(current_user: dict = Depends(get_current_user)):
     pending_expense = await db["requests"].count_documents({"status": "submitted"})
     approved_expense = await db["requests"].count_documents({"status": "Approved"})
@@ -320,7 +319,7 @@ async def get_all_expenses(current_user: dict = Depends(get_current_user)):
 # endregion Admin Routes
 
 # region User Routes
-@user_router.post("/user/signin", response_model=Token)
+@user_router.post("/signin", response_model=Token)
 async def user_signin(form_data: OAuth2PasswordRequestForm = Depends()):
     user = await db["users"].find_one({"Email": form_data.username})
     if not user or not verify_password(form_data.password, user["Password_hash"]):
@@ -336,7 +335,7 @@ async def user_signin(form_data: OAuth2PasswordRequestForm = Depends()):
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@user_router.post("/user/change_password")
+@user_router.post("/change_password")
 async def change_password(current_user: dict = Depends(get_current_user), old_password: str = Body(...),
                         new_password: str = Body(...)):
     user = await db["users"].find_one({"Email": current_user["email"]})
@@ -348,7 +347,7 @@ async def change_password(current_user: dict = Depends(get_current_user), old_pa
     return {"message": "Password changed successfully"}
 
 
-@user_router.get("/user/requests")
+@user_router.get("/requests")
 async def get_user_requests(current_user: dict = Depends(get_current_user)):
     user = await db["users"].find_one({"Email": current_user["email"]})
     requests_cursor = db["requests"].find({"requestor": str(user["_id"])})
@@ -362,7 +361,7 @@ async def get_user_requests(current_user: dict = Depends(get_current_user)):
     return requests_list
 
 
-@user_router.post("/user/create_request")
+@user_router.post("/create_request")
 async def create_request(request: Request, current_user: dict = Depends(get_current_user)):
     user = await db["users"].find_one({"Email": current_user["email"]})
     request.requestor = str(user["_id"])
@@ -374,21 +373,21 @@ async def create_request(request: Request, current_user: dict = Depends(get_curr
     return {"message": "Request created successfully"}
 
 
-@user_router.post("/user/approve_request/{request_id}")
+@user_router.post("/approve_request/{request_id}")
 async def approve_request(request_id: str, current_user: dict = Depends(get_current_user)):
     # Complex approval logic would be implemented here
     await db["requests"].update_one({"_id": ObjectId(request_id)}, {"$set": {"status": "Approved"}})
     return {"message": "Request approved"}
 
 
-@user_router.post("/user/reject_request/{request_id}")
+@user_router.post("/reject_request/{request_id}")
 async def reject_request(request_id: str, current_user: dict = Depends(get_current_user)):
     # Complex rejection logic would be implemented here
     await db["requests"].update_one({"_id": ObjectId(request_id)}, {"$set": {"status": "Rejected"}})
     return {"message": "Request rejected"}
 
 
-@user_router.get("/user/team_expense")
+@user_router.get("/team_expense")
 async def get_team_expense(current_user: dict = Depends(get_current_user)):
     user = await db["users"].find_one({"Email": current_user["email"]})
     if user["role"] != "manager":
@@ -400,7 +399,5 @@ async def get_team_expense(current_user: dict = Depends(get_current_user)):
 
 # endregion User Routes
 
-app.include_router(admin_router, tags=["admin"])
-app.include_router(user_router, tags=["user"])
-
-
+app.include_router(admin_router, prefix="/admin", tags=["admin"])
+app.include_router(user_router, prefix="/user", tags=["user"])

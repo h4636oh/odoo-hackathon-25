@@ -15,7 +15,7 @@ const UserSignin = ({ onLogin }) => {
     setError('');
     
     try {
-      const response = await fetch('http://localhost:8000/api/user/signin', {
+      const response = await fetch('http://localhost:8000/user/signin', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

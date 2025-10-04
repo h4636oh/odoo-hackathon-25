@@ -13,7 +13,7 @@ const CreateUserModal = ({ user, onClose, onSuccess }) => {
     setError('');
     
     try {
-      const response = await fetch('http://localhost:8000/api/admin/create_user', {
+      const response = await fetch('http://localhost:8000/admin/create_user', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

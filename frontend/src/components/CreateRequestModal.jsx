@@ -32,7 +32,7 @@ const CreateRequestModal = ({ user, onClose, onSuccess }) => {
     setError('');
     
     try {
-      const response = await fetch('http://localhost:8000/api/user/create_request', {
+      const response = await fetch('http://localhost:8000/user/create_request', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -14,7 +14,7 @@ const RequestDetailModal = ({ request, onClose, readOnly = false, onApprove, onR
   const fetchRequestDetails = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:8000/api/admin/requests/${request.request_id}`, {
+      const response = await fetch(`http://localhost:8000/admin/requests/${request.request_id}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).access_token : ''}`,
         },

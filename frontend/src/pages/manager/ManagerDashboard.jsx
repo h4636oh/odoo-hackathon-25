@@ -19,7 +19,7 @@ const ManagerDashboard = ({ user }) => {
     try {
       // This would typically be a different endpoint for manager's pending requests
       // For now, we'll use the admin endpoint as a placeholder
-      const response = await fetch('http://localhost:8000/api/admin/requests', {
+      const response = await fetch('http://localhost:8000/admin/requests', {
         headers: {
           'Authorization': `Bearer ${user.access_token}`,
         },
@@ -39,7 +39,7 @@ const ManagerDashboard = ({ user }) => {
 
   const fetchTeamExpenses = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/user/team_expense', {
+      const response = await fetch('http://localhost:8000/user/team_expense', {
         headers: {
           'Authorization': `Bearer ${user.access_token}`,
         },
@@ -57,7 +57,7 @@ const ManagerDashboard = ({ user }) => {
   const handleApprove = async (requestId) => {
     setActionLoading(requestId);
     try {
-      const response = await fetch(`http://localhost:8000/api/user/approve_request/${requestId}`, {
+      const response = await fetch(`http://localhost:8000/user/approve_request/${requestId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${user.access_token}`,
@@ -82,7 +82,7 @@ const ManagerDashboard = ({ user }) => {
   const handleReject = async (requestId) => {
     setActionLoading(requestId);
     try {
-      const response = await fetch(`http://localhost:8000/api/user/reject_request/${requestId}`, {
+      const response = await fetch(`http://localhost:8000/user/reject_request/${requestId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${user.access_token}`,

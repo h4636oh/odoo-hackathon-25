@@ -18,7 +18,7 @@ const AdminDashboard = ({ user }) => {
 
   const fetchAllRequests = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/admin/requests', {
+      const response = await fetch('http://localhost:8000/admin/requests', {
         headers: {
           'Authorization': `Bearer ${user.access_token}`,
         },
@@ -37,7 +37,7 @@ const AdminDashboard = ({ user }) => {
 
   const fetchExpenses = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/admin/expenses', {
+      const response = await fetch('http://localhost:8000/admin/expenses', {
         headers: {
           'Authorization': `Bearer ${user.access_token}`,
         },

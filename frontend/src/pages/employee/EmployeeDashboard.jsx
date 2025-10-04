@@ -16,7 +16,7 @@ const EmployeeDashboard = ({ user }) => {
 
   const fetchRequests = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/user/requests', {
+      const response = await fetch('http://localhost:8000/user/requests', {
         headers: {
           'Authorization': `Bearer ${user.access_token}`,
         },

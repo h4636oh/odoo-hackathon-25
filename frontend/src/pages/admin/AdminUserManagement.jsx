@@ -16,7 +16,7 @@ const AdminUserManagement = ({ user }) => {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/admin/users', {
+      const response = await fetch('http://localhost:8000/admin/users', {
         headers: {
           'Authorization': `Bearer ${user.access_token}`,
         },
@@ -36,7 +36,7 @@ const AdminUserManagement = ({ user }) => {
   const handleChangeRole = async (userId, newRole) => {
     setActionLoading(userId);
     try {
-      const response = await fetch(`http://localhost:8000/api/admin/change_role/${userId}`, {
+      const response = await fetch(`http://localhost:8000/admin/change_role/${userId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -61,7 +61,7 @@ const AdminUserManagement = ({ user }) => {
   const handleChangeManager = async (userId, newManagerId) => {
     setActionLoading(userId);
     try {
-      const response = await fetch(`http://localhost:8000/api/admin/change_manager/${userId}`, {
+      const response = await fetch(`http://localhost:8000/admin/change_manager/${userId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -86,7 +86,7 @@ const AdminUserManagement = ({ user }) => {
   const handleSendPassword = async (userId) => {
     setActionLoading(userId);
     try {
-      const response = await fetch(`http://localhost:8000/api/admin/send_password/${userId}`, {
+      const response = await fetch(`http://localhost:8000/admin/send_password/${userId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${user.access_token}`,
