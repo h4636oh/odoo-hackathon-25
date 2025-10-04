@@ -106,6 +106,12 @@
       "params": ["email", "password"],
       "returns": ["access_token", "refresh_token"]
     },
+    "user/change_password": {
+      "description": "changes the user's password",
+      "type": "POST",
+      "params": ["email", "old_password", "new_password"],
+      "return": ["HTTP 200 OK"]
+    },
     "user/requests": {
       "description": "list all the requests created by the user",
       "type": "GET",
