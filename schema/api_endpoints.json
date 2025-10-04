@@ -15,7 +15,7 @@
     "/admin/create_user": {
       "description": "creates a employee/manager",
       "type": "POST",
-      "params": ["name", "email", "isManager"],
+      "params": ["name", "email", "role"],
       "returns": ["user created successfull http status 200"]
     },
     "/admin/users": {

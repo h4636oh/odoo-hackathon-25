@@ -2,7 +2,7 @@
   "user_id": "uuid",
   "Name": "Firstname LastName",
   "Email": "abc@def.com",
-  "isManager": "bool",
+  "role": "employee/manager",
   "Password_hash": "pasdpfas",
   "Refresh_Token_hash": "sdfadsf",
   "Approved_Requests": [],
