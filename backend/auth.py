@@ -5,10 +5,14 @@ from fastapi import Depends, HTTPException, status, APIRouter
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from pydantic import BaseModel
-
+from dotenv import load_dotenv
+import os
 from database import db
 
-SECRET_KEY = "your-secret-key"  # Change this in a real application
+
+load_dotenv()
+
+SECRET_KEY = os.getenv("SECRET_KEY") # Change this in a real application
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 

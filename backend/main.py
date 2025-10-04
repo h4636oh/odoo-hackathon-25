@@ -6,6 +6,7 @@ from datetime import timedelta
 import httpx
 from bson import ObjectId
 from fastapi import FastAPI, Depends, HTTPException, status, Body, APIRouter
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from passlib.context import CryptContext
 from pydantic import BaseModel, EmailStr, Field
@@ -17,6 +18,25 @@ from database import db
 from mailer import send_email
 
 app = FastAPI()
+
+# region CORS Middleware
+# This is the new section to allow frontend communication
+
+origins = [
+    "http://localhost",
+    "http://localhost:3000",
+    "http://localhost:8080",
+    # You can add the specific URL of your frontend if it's deployed
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins for simplicity. For production, restrict this.
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allows all headers
+)
+# endregion
 
 # Create separate routers for admin and user
 admin_router = APIRouter()
@@ -382,4 +402,5 @@ async def get_team_expense(current_user: dict = Depends(get_current_user)):
 
 app.include_router(admin_router, tags=["admin"])
 app.include_router(user_router, tags=["user"])
+
 

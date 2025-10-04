@@ -1,10 +1,9 @@
 fastapi
 uvicorn
 motor
-passlib[bcrypt]
-bcrypt
 python-jose[cryptography]
-python-multipart
-httpx
+passlib[bcrypt]
+python-dotenv
 pydantic
-email-validator
+httpx
+python-multipart

@@ -1,10 +1,14 @@
 import smtplib
 from email.mime.text import MIMEText
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 def send_email(subject, body, to_email):
     # IMPORTANT: Replace with your actual email and app password
-    sender_email = "priyankaspm04@gmail.com"
-    app_password = "dfdj bvra pohw triq " # Replace with your app password
+    sender_email = os.getenv('EMAIL')
+    app_password = os.getenv('PASSWORD') # Replace with your app password
 
     msg = MIMEText(body)
     msg['Subject'] = subject
