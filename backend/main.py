@@ -99,6 +99,30 @@ async def get_currency_for_country(country_name: str):
 
 # endregion Helper Functions
 
+# region Universal Login Route (for Swagger UI compatibility)
+@app.post("/token", response_model=Token, include_in_schema=False)
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    # This endpoint is used by the "Authorize" button in docs.
+    # It checks both admins and users collections.
+    admin = await db["admins"].find_one({"Email": form_data.username})
+    if admin and verify_password(form_data.password, admin["Password_hash"]):
+        user_email = admin["Email"]
+    else:
+        user = await db["users"].find_one({"Email": form_data.username})
+        if not user or not verify_password(form_data.password, user["Password_hash"]):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        user_email = user["Email"]
+
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user_email}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+# endregion
 
 # region Admin Routes
 @admin_router.post("/admin/signup", response_model=Token)
@@ -131,7 +155,6 @@ async def admin_signup(form_data: Admin = Body(...)):
         data={"sub": form_data.email}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
-
 
 @admin_router.post("/admin/signin", response_model=Token)
 async def admin_signin(form_data: OAuth2PasswordRequestForm = Depends()):
@@ -349,7 +372,7 @@ async def reject_request(request_id: str, current_user: dict = Depends(get_curre
 async def get_team_expense(current_user: dict = Depends(get_current_user)):
     user = await db["users"].find_one({"Email": current_user["email"]})
     if user["role"] != "manager":
-        raise HTTPException(status_code=403, detail="Only managers can view team expenses")
+        raise HTTPException(status_code=43, detail="Only managers can view team expenses")
     
     # Logic to calculate team expenses would go here
     return {"Pending_expense": 0, "Approved_expense": 0}
