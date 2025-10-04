@@ -19,12 +19,16 @@ const CreateRequestModal = ({ user, onClose, onSuccess }) => {
   ];
 
   const currencies = [
-    { code: 'USD', name: 'US Dollar' },
-    { code: 'INR', name: 'Indian Rupee' },
-    { code: 'EUR', name: 'Euro' },
-    { code: 'GBP', name: 'British Pound' },
-    { code: 'CAD', name: 'Canadian Dollar' },
-    { code: 'AUD', name: 'Australian Dollar' },
+    { code: 'US', name: 'United States', currency: 'USD' },
+    { code: 'IN', name: 'India', currency: 'INR' },
+    { code: 'GB', name: 'United Kingdom', currency: 'GBP' },
+    { code: 'CA', name: 'Canada', currency: 'CAD' },
+    { code: 'AU', name: 'Australia', currency: 'AUD' },
+    { code: 'DE', name: 'Germany', currency: 'EUR' },
+    { code: 'FR', name: 'France', currency: 'EUR' },
+    { code: 'JP', name: 'Japan', currency: 'JPY' },
+    { code: 'CN', name: 'China', currency: 'CNY' },
+    { code: 'BR', name: 'Brazil', currency: 'BRL' },
   ];
 
   const onSubmit = async (data) => {
@@ -40,7 +44,7 @@ const CreateRequestModal = ({ user, onClose, onSuccess }) => {
         },
         body: JSON.stringify({
           requestor: user.user_id || user.name,
-          request_description: data.description,
+          description: data.description,
           expense_date: data.expense_date,
           category: data.category,
           paidBy: user.user_id || user.name,

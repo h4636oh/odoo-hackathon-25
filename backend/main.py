@@ -69,14 +69,14 @@ class TokenData(BaseModel):
 
 
 class Request(BaseModel):
-    requestor: str
-    description: str
-    expense_date: str
-    category: str
-    paidBy: str
-    payment_Currency: str
-    payment_Amount: float
-    remarks: str
+    requestor: str | None = None
+    description: str | None = None
+    expense_date: str | None = None
+    category: str | None = None
+    paidBy: str | None = None
+    payment_Currency: str | None = None
+    payment_Amount: float | None = None
+    remarks: str | None = None
     status: str = "submitted"
 
 
