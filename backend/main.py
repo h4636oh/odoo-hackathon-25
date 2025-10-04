@@ -2,13 +2,13 @@ import os
 import random
 import string
 from datetime import timedelta
-
+import bcrypt  # Import bcrypt directly
 import httpx
 from bson import ObjectId
 from fastapi import FastAPI, Depends, HTTPException, status, Body, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
-from passlib.context import CryptContext
+# passlib.context is no longer needed
 from pydantic import BaseModel, EmailStr, Field
 
 import auth
@@ -16,34 +16,30 @@ import database
 from auth import create_access_token, get_current_user, ACCESS_TOKEN_EXPIRE_MINUTES
 from database import db
 from mailer import send_email
-from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
+# region CORS Middleware
+# This is the new section to allow frontend communication
+
 origins = [
-    "http://localhost:3000", # Example for React
-    "http://localhost:5173", # Example for Vite/Vue
-    "http://localhost:4200", # Example for Angular
+    "http://localhost",
+    "http://localhost:3000",
+    "http://localhost:8080",
+    # You can add the specific URL of your frontend if it's deployed
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True, # Allows cookies to be included in requests
-    allow_methods=["*"],    # Allows all methods (GET, POST, etc.)
-    allow_headers=["*"],    # Allows all headers
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
+# endregion
 
-@app.post("/test-cors")
-async def test_cors_endpoint():
-    return {"message": "CORS test successful"}
-
-# Create separate routers for admin and user
 admin_router = APIRouter()
 user_router = APIRouter()
-
-# Password Hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # region Models
 class Admin(BaseModel):
@@ -63,6 +59,10 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
+# NEW: Pydantic model for login data, ensuring a clean JSON body
+class LoginCredentials(BaseModel):
+    email: EmailStr
+    password: str
 
 class TokenData(BaseModel):
     email: str | None = None
@@ -93,13 +93,22 @@ class RequestRule(BaseModel):
 # endregion Models
 
 # region Helper Functions
-def get_password_hash(password):
-    # bcrypt has a 72-character limit for passwords. Truncate to avoid errors.
-    return pwd_context.hash(password[:72])
+def get_password_hash(password: str) -> str:
+    """Hashes the password using bcrypt."""
+    # Bcrypt requires bytes. We encode the password and generate a salt.
+    password_bytes = password.encode('utf-8')
+    salt = bcrypt.gensalt()
+    hashed_password_bytes = bcrypt.hashpw(password_bytes, salt)
+    # Decode back to a string to store in the database
+    return hashed_password_bytes.decode('utf-8')
 
 
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verifies a plain password against a hashed one."""
+    # Encode both the plain password and the stored hash to bytes for comparison
+    plain_password_bytes = plain_password.encode('utf-8')
+    hashed_password_bytes = hashed_password.encode('utf-8')
+    return bcrypt.checkpw(plain_password_bytes, hashed_password_bytes)
 
 
 async def get_currency_for_country(country_name: str):
@@ -119,7 +128,7 @@ async def get_currency_for_country(country_name: str):
 # endregion Helper Functions
 
 # region Universal Login Route (for Swagger UI compatibility)
-@app.post("/token", response_model=Token, include_in_schema=False)
+@app.post("/token", response_model=Token, tags=["authentication"])
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     # This endpoint is used by the "Authorize" button in docs.
     # It checks both admins and users collections.
@@ -144,7 +153,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 # endregion
 
 # region Admin Routes
-@admin_router.post("/signup", response_model=Token)
+@admin_router.post("/admin/signup", response_model=Token)
 async def admin_signup(form_data: Admin = Body(...)):
     existing_admin = await db["admins"].find_one({"Email": form_data.email})
     if existing_admin:
@@ -175,10 +184,10 @@ async def admin_signup(form_data: Admin = Body(...)):
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
-@admin_router.post("/signin", response_model=Token)
-async def admin_signin(form_data: OAuth2PasswordRequestForm = Depends()):
-    admin = await db["admins"].find_one({"Email": form_data.username})
-    if not admin or not verify_password(form_data.password, admin["Password_hash"]):
+@admin_router.post("/admin/signin", response_model=Token)
+async def admin_signin(credentials: LoginCredentials = Body(...)):
+    admin = await db["admins"].find_one({"Email": credentials.email})
+    if not admin or not verify_password(credentials.password, admin["Password_hash"]):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -191,7 +200,7 @@ async def admin_signin(form_data: OAuth2PasswordRequestForm = Depends()):
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@admin_router.post("/create_user")
+@admin_router.post("/admin/create_user")
 async def create_user(user: User, current_user: dict = Depends(get_current_user)):
     if await db["users"].find_one({"Email": user.email}):
         raise HTTPException(
@@ -226,7 +235,7 @@ async def create_user(user: User, current_user: dict = Depends(get_current_user)
     return {"message": "User created successfully and password sent to email."}
 
 
-@admin_router.get("/users")
+@admin_router.get("/admin/users")
 async def list_users(current_user: dict = Depends(get_current_user)):
     users_cursor = db["users"].find({})
     users_list = []
@@ -246,20 +255,20 @@ async def list_users(current_user: dict = Depends(get_current_user)):
     return users_list
 
 
-@admin_router.post("/change_role/{user_id}")
+@admin_router.post("/admin/change_role/{user_id}")
 async def change_role(user_id: str, role: str = Body(..., embed=True), current_user: dict = Depends(get_current_user)):
     await db["users"].update_one({"_id": ObjectId(user_id)}, {"$set": {"role": role}})
     return {"message": "User role changed successfully"}
 
 
-@admin_router.post("/change_manager/{user_id}")
+@admin_router.post("/admin/change_manager/{user_id}")
 async def change_manager(user_id: str, manager_id: str = Body(..., embed=True),
                          current_user: dict = Depends(get_current_user)):
     await db["users"].update_one({"_id": ObjectId(user_id)}, {"$set": {"Manager": manager_id}})
     return {"message": "User manager changed successfully"}
 
 
-@admin_router.post("/send_password/{user_id}")
+@admin_router.post("/admin/send_password/{user_id}")
 async def send_password(user_id: str, current_user: dict = Depends(get_current_user)):
     user = await db["users"].find_one({"_id": ObjectId(user_id)})
     if not user:
@@ -276,7 +285,7 @@ async def send_password(user_id: str, current_user: dict = Depends(get_current_u
     return {"message": "User password sent successfully"}
 
 
-@admin_router.get("/requests")
+@admin_router.get("/admin/requests")
 async def list_all_requests(current_user: dict = Depends(get_current_user)):
     requests_cursor = db["requests"].find({})
     requests_list = []
@@ -290,7 +299,7 @@ async def list_all_requests(current_user: dict = Depends(get_current_user)):
     return requests_list
 
 
-@admin_router.get("/requests/{request_id}")
+@admin_router.get("/admin/requests/{request_id}")
 async def get_request_details(request_id: str, current_user: dict = Depends(get_current_user)):
     request = await db["requests"].find_one({"_id": ObjectId(request_id)})
     if not request:
@@ -302,14 +311,14 @@ async def get_request_details(request_id: str, current_user: dict = Depends(get_
     return request
 
 
-@admin_router.post("/generate_request_rules/{request_id}")
+@admin_router.post("/admin/generate_request_rules/{request_id}")
 async def generate_request_rules(request_id: str, rule: RequestRule, current_user: dict = Depends(get_current_user)):
     await db["requests"].update_one({"_id": ObjectId(request_id)}, {"$set": rule.dict()})
     # Logic to send to approval process would go here
     return {"message": "Request rules generated and sent for approval"}
 
 
-@admin_router.get("/expenses")
+@admin_router.get("/admin/expenses")
 async def get_all_expenses(current_user: dict = Depends(get_current_user)):
     pending_expense = await db["requests"].count_documents({"status": "submitted"})
     approved_expense = await db["requests"].count_documents({"status": "Approved"})
@@ -319,10 +328,10 @@ async def get_all_expenses(current_user: dict = Depends(get_current_user)):
 # endregion Admin Routes
 
 # region User Routes
-@user_router.post("/signin", response_model=Token)
-async def user_signin(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = await db["users"].find_one({"Email": form_data.username})
-    if not user or not verify_password(form_data.password, user["Password_hash"]):
+@user_router.post("/user/signin", response_model=Token)
+async def user_signin(credentials: LoginCredentials = Body(...)):
+    user = await db["users"].find_one({"Email": credentials.email})
+    if not user or not verify_password(credentials.password, user["Password_hash"]):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -335,7 +344,7 @@ async def user_signin(form_data: OAuth2PasswordRequestForm = Depends()):
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@user_router.post("/change_password")
+@user_router.post("/user/change_password")
 async def change_password(current_user: dict = Depends(get_current_user), old_password: str = Body(...),
                         new_password: str = Body(...)):
     user = await db["users"].find_one({"Email": current_user["email"]})
@@ -347,7 +356,7 @@ async def change_password(current_user: dict = Depends(get_current_user), old_pa
     return {"message": "Password changed successfully"}
 
 
-@user_router.get("/requests")
+@user_router.get("/user/requests")
 async def get_user_requests(current_user: dict = Depends(get_current_user)):
     user = await db["users"].find_one({"Email": current_user["email"]})
     requests_cursor = db["requests"].find({"requestor": str(user["_id"])})
@@ -361,7 +370,7 @@ async def get_user_requests(current_user: dict = Depends(get_current_user)):
     return requests_list
 
 
-@user_router.post("/create_request")
+@user_router.post("/user/create_request")
 async def create_request(request: Request, current_user: dict = Depends(get_current_user)):
     user = await db["users"].find_one({"Email": current_user["email"]})
     request.requestor = str(user["_id"])
@@ -373,25 +382,25 @@ async def create_request(request: Request, current_user: dict = Depends(get_curr
     return {"message": "Request created successfully"}
 
 
-@user_router.post("/approve_request/{request_id}")
+@user_router.post("/user/approve_request/{request_id}")
 async def approve_request(request_id: str, current_user: dict = Depends(get_current_user)):
     # Complex approval logic would be implemented here
     await db["requests"].update_one({"_id": ObjectId(request_id)}, {"$set": {"status": "Approved"}})
     return {"message": "Request approved"}
 
 
-@user_router.post("/reject_request/{request_id}")
+@user_router.post("/user/reject_request/{request_id}")
 async def reject_request(request_id: str, current_user: dict = Depends(get_current_user)):
     # Complex rejection logic would be implemented here
     await db["requests"].update_one({"_id": ObjectId(request_id)}, {"$set": {"status": "Rejected"}})
     return {"message": "Request rejected"}
 
 
-@user_router.get("/team_expense")
+@user_router.get("/user/team_expense")
 async def get_team_expense(current_user: dict = Depends(get_current_user)):
     user = await db["users"].find_one({"Email": current_user["email"]})
     if user["role"] != "manager":
-        raise HTTPException(status_code=43, detail="Only managers can view team expenses")
+        raise HTTPException(status_code=403, detail="Only managers can view team expenses")
     
     # Logic to calculate team expenses would go here
     return {"Pending_expense": 0, "Approved_expense": 0}
@@ -399,5 +408,5 @@ async def get_team_expense(current_user: dict = Depends(get_current_user)):
 
 # endregion User Routes
 
-app.include_router(admin_router, prefix="/admin", tags=["admin"])
-app.include_router(user_router, prefix="/user", tags=["user"])
+app.include_router(admin_router, tags=["admin"])
+app.include_router(user_router, tags=["user"])
