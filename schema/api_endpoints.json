@@ -1,0 +1,157 @@
+{
+  "admin": {
+    "/admin/signin": {
+      "description": "admin signins",
+      "type": "POST",
+      "params": ["email", "password"],
+      "returns": ["access_token", "refresh_token"]
+    },
+    "/admin/signup": {
+      "description": "admin signups",
+      "type": "POST",
+      "params": ["email", "password", "company_name", "country"],
+      "returns": ["access_token", "refresh_token"]
+    },
+    "/admin/create_user": {
+      "description": "creates a employee/manager",
+      "type": "POST",
+      "params": ["name", "email", "isManager"],
+      "returns": ["user created successfull http status 200"]
+    },
+    "/admin/users": {
+      "description": "list all users",
+      "type": "GET",
+      "params": [],
+      "returns": [{
+        "name": "name",
+        "role": "role",
+        "manager": ["user_id", "user_name"],
+        "email": "abc@email.com"
+      }]
+    },
+    "/admin/change_role/{user_id}": {
+      "description": "changes the role of given user",
+      "type": "POST",
+      "params": ["role"],
+      "returns": ["user role changed successfully http status 200"]
+    },
+    "/admin/change_manager/{user_id}": {
+      "description": "changes the manager of given user",
+      "type": "POST",
+      "params": ["manager_id"],
+      "returns": ["user manager changed successfully http status 200"]
+    },
+    "/admin/send_password/{user_id}": {
+      "description": "changes the manager of given user",
+      "type": "POST",
+      "params": [],
+      "returns": ["user password sent successfully http status 200"]
+    },
+    "/admin/requests": {
+      "description": "list all requests",
+      "type": "GET",
+      "params": [],
+      "returns": [{
+        "requestor": "name",
+        "description": "description",
+        "request_id": "request_id"
+      }]
+    },
+    "/admin/requests/{request_id}": {
+      "description": "list all request_id details",
+      "type": "GET",
+      "params": [],
+      "returns": [{
+        "request_id": "request_id",
+        "requestor": "name",
+        "description": "description",
+        "expense_date": "date",
+        "category": "category",
+        "paidBy": "user_id",
+        "payment_Currency": "",
+        "payment_Amount": 100,
+        "remarks": "",
+        "status": ""
+      }]
+    },
+    "/admin/generate_request_rules/{request_id}": {
+      "description": "generates the request and send it to the approval request",
+      "type": "POST",
+      "params": {
+        "request_id": "request_id",
+        "rule_description": "",
+        "temp_manager": "user_id",
+        "manager_required": "bool",
+        "approvers": ["user_id"],
+        "compulsory_Approvers": ["user_id"],
+        "sequential": "bool",
+        "percentage_Required": 50
+      },
+      "returns": []
+    },
+    "/admin/expenses": {
+      "description": "view all expenses",
+      "type": "GET",
+      "params": [],
+      "returns": {
+        "Pending_expense": 100,
+        "Approved_expense": 150
+      }
+    }
+  },
+  "user": {
+    "user/signin": {
+      "description": "user signins",
+      "type": "POST",
+      "params": ["email", "password"],
+      "returns": ["access_token", "refresh_token"]
+    },
+    "user/requests": {
+      "description": "list all the requests created by the user",
+      "type": "GET",
+      "params": [],
+      "returns": [{
+        "request_id": "request_id",
+        "description": "description",
+        "status": "status"
+      }]
+    },
+    "user/create_request": {
+      "description": "creates a request which is sent to admin",
+      "type": "POST",
+      "params": {
+        "requestor": "",
+        "request_description": "",
+        "expense_date": "date",
+        "category": "",
+        "paidBy": "",
+        "payment_Curreny": "",
+        "payment_Amount": 100,
+        "remarks": "",
+        "status": "submitted"
+      },
+      "returns": ["HTTP 200 OK"]
+    },
+    "user/approve_request/{request_id}": {
+      "description": "person approves the request and the request get's forwarded to the next person",
+      "type": "POST",
+      "params": [],
+      "returns": ["HTTP 200 OK"]
+    },
+    "user/reject_request/{request_id}": {
+      "description": "person reject the request and the request get's forwarded to the next person",
+      "type": "POST",
+      "params": [],
+      "returns": ["HTTP 200 OK"]
+    },
+    "user/team_expense": {
+      "description": "total team expense of that manager",
+      "type": "",
+      "params": [],
+      "returns": {
+        "Pending_expense": 100,
+        "Approved_expense": 150
+      }
+    }
+  }
+}
