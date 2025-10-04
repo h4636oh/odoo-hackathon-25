@@ -1,0 +1,16 @@
+{
+  "user_id": "uuid",
+  "Name": "Firstname LastName",
+  "Email": "abc@def.com",
+  "isManager": "bool",
+  "Password_hash": "pasdpfas",
+  "Refresh_Token_hash": "sdfadsf",
+  "Approved_Requests": [],
+  "Rejected_Requests": [],
+  "Draft_Requests": [],
+  "Pending_Requests": [],
+  "Manager": "uuid",
+  "To_Approve_Requests": [],
+  "Has_Approved_Requests": [],
+  "Has_Rejected_Requests": []
+}
